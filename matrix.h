@@ -41,6 +41,11 @@ public:
         { 1, 2, 3 },
         { 4, 5, 6 }
     }
+    {
+        { 1 },
+        { 2 },
+        { 3 }    
+    }
     */
 
     // Math operations
@@ -51,10 +56,11 @@ public:
         }
         matrix newMatrix(m1.getRow(), m2.getCol());
         
-        matrix m2Transposed = matrix::transpose(m2);
         for (int j = 0; j < newMatrix.getRow(); j++) {
             for (int i = 0; i < newMatrix.getCol(); i++) {
-                newMatrix.set(j, i, vector1DMultiply(m1.data[j], m2Transposed.data[i]));
+                float total = 0;
+                for(int k = 0; k < m1.getCol(); k++) total += (m1.get(j, k) * m2.get(k, i));
+                newMatrix.set(j, i, total);
             }
         }
 
@@ -163,6 +169,21 @@ public:
     
 
     // Normal operations for the class as a whole (not necessarily math functions)
+    void updateLongestCharacter(){
+        int highestWidth = 0;
+        for(int j = 0; j < row; j++) { 
+            for(int i = 0; i < col; i++){
+                std::string cha = std::to_string(get(j, i));
+                int width = cha.size();
+                if (width > highestWidth) highestWidth = width;
+            }
+        }
+        if ((highestWidth + 2) != longestCharacter) {
+            longestCharacter = (highestWidth + 2);
+            longestCharacterHalf = longestCharacter / 2;
+        }
+    }
+
     std::vector<int> getSize() { return { row, col }; }
     
     inline void printSize() { std::cout << "Rows: " << row << " Cols: " << col << std::endl; }
@@ -176,19 +197,33 @@ public:
     }
     
     inline void print(){
-        int x = (col - 1) * 2 + 5;
-        for (int i = 0; i < x; i++) std::cout << "-";
+        // Update the stroed longest character length
+        if(changed) updateLongestCharacter();
+
+        int totalLineLength = (col - 1) * (longestCharacter + 1) + longestCharacter + 2;
+        for (int i = 0; i < totalLineLength; i++) std::cout << "-";
         std::cout << " (" << row << ", " << col << ")" << std::endl;
 
         for(int j = 0; j < row; j++) {
-            std::cout << "| ";
-            
-            for (int i = 0; i < col - 1; i++) std::cout << get(j, i) << " ";
+            std::cout << "|";
+            std::string printValue = std::to_string(get(j, 0));
+            int spaces = (longestCharacter - printValue.size()) / 2;
+            for(int i = 0; i < spaces; i++) std::cout << " ";
 
-            std::cout << get(j, col - 1) << " |" << std::endl;
+            
+            for (int i = 0; i < col - 1; i++) {
+                std::string printValue = std::to_string(get(j, i));
+                spaces = (longestCharacter - printValue.size()) /2;
+                for(int k = 0; k < spaces; k++) std::cout << " ";
+                std::cout << printValue;
+                for(int k = 0; k < spaces; k++) std::cout << " ";
+            }
+
+            std::cout << get(j, col - 1); 
+            std::cout << "|" << std::endl;
         }
 
-        for (int i = 0; i < x; i++) std::cout << "-";
+        for (int i = 0; i < totalLineLength; i++) std::cout << "-";
         std::cout << std::endl;
     }
 
@@ -216,4 +251,7 @@ private:
 
     std::vector<std::vector<float>> data;
     int row, col;
+
+    bool changed;
+    int longestCharacter, longestCharacterHalf;
 };

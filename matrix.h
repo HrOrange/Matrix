@@ -21,6 +21,7 @@ public:
     : data(m),
       row(m.size()),
       col(m[0].size()) {
+        updateLongestCharacter();
     }
 
     matrix (int rows, int columns) 
@@ -28,11 +29,13 @@ public:
       col(columns) {
         data = std::vector<std::vector<float>>(rows);
         for (int i = 0; i < rows; i++) data[i] = std::vector<float>(columns);
+        updateLongestCharacter();
     }
     matrix (int rows) 
     : row(rows),
       col(1) {
         for(int i = 0; i < rows; i++) data.push_back( { 0 } );
+        updateLongestCharacter();
     }
 
 
@@ -159,7 +162,59 @@ public:
         return total;
     }
     static matrix GaussJordanElimination(matrix m) {
-        return m;
+        matrix intermediate = copy(m);
+
+        //Step 1
+        int leadingOneCol = -1;
+        int leadingOneRow = -1;
+        bool done = false;
+        while (done == false){
+            // Step 1 (Find first column with non-zero value)
+            float a;
+            bool leadingOneFound = false;
+            for (int i = leadingOneCol + 1; i < intermediate.getCol(); i++){
+                for(int j = leadingOneRow + 1; j < intermediate.getRow(); j++){
+                    
+                    // Check if the row below the last leading one has a value  
+                    if (intermediate.get(j, i) != 0.0f && j == (leadingOneRow + 1)) {
+                        a = intermediate.get(j, i);
+
+                        leadingOneCol = i;
+                        leadingOneRow = j;
+                        leadingOneFound = true;
+                        break;
+
+                    // Step 2 (Switch this row with the first row)
+                    } else if (intermediate.get(j, i) != 0.0f) {
+                        a = intermediate.get(j, i);
+                        
+                        intermediate.switchRows(leadingOneRow + 1, j);
+                        
+                        
+                        leadingOneCol = i;
+                        leadingOneRow++;
+                        leadingOneFound = true;
+                        break;
+                    }
+                }
+                if (leadingOneFound) break;
+            }
+            if (!leadingOneFound) {
+                done = true;
+                break;
+            }
+
+            // Step 3 (Divide the row by a)
+            for(int i = leadingOneCol; i < intermediate.getCol(); i++) intermediate.set(leadingOneRow, i, intermediate.get(leadingOneRow, i) / a);
+
+            // Step 4 (Add suitable multiplies of the first row to the ones belowto obtain zeros under the leading one)
+            for (int j = leadingOneRow + 1; j < intermediate.getRow(); j++) {
+                float mult = -intermediate.get(j, leadingOneCol);
+                intermediate.set(j, leadingOneCol, intermediate.get(j, leadingOneCol) + intermediate.get(leadingOneRow, leadingOneCol) * mult);
+            }
+        }
+
+        return intermediate;
     }
     static matrix GaussJordanEliminationReduced(matrix m) {
         matrix intermediate = GaussJordanElimination(m);
@@ -184,7 +239,7 @@ public:
         matrix I(m.getRow(), m.getCol());
         matrix B(m.getRow(), m.getCol());
         matrix::copy(intermediate, I);
-        matrix::copy(intermediate, B, m.getCol);
+        matrix::copy(intermediate, B, m.getCol());
 
         if (identity(I)) return B;
         else return matrix(0, 0);
@@ -211,7 +266,9 @@ public:
         }
         return res;
     }
-    
+    static float determinant(matrix m){
+        return 0;
+    }
 
     // Normal operations for the class as a whole (not necessarily math functions)
     std::vector<int> getSize() { return { row, col }; }
@@ -223,14 +280,20 @@ public:
             }
         }
     }
-    inline void print(){
+    inline void print(int mode = 1){
         // Update the stroed longest character length
         if(changed) updateLongestCharacter();
+        std::cout << longestCharacter << std::endl;
 
-        int totalLineLength = (col - 1) * (longestCharacter + 1) + longestCharacter + 2;
+        // First line
+        int totalLineLength;
+        if (mode == 1 || mode == 3) totalLineLength = (col - 1) * (longestCharacter + 1) + longestCharacter + 2;
+        else totalLineLength = (col - 1) * longestCharacter + longestCharacter + 2;
+
         for (int i = 0; i < totalLineLength; i++) std::cout << "-";
         std::cout << " (" << row << ", " << col << ")" << std::endl;
 
+        // All the lines in the middle
         for(int j = 0; j < row; j++) {
             std::cout << "|";
             std::string printValue = std::to_string(get(j, 0));
@@ -244,14 +307,27 @@ public:
                 for(int k = 0; k < spaces; k++) std::cout << " ";
                 std::cout << printValue;
                 for(int k = 0; k < spaces; k++) std::cout << " ";
+                if (mode == 1 || mode == 3) std::cout << "|";
             }
 
-            std::cout << get(j, col - 1); 
+            printValue = std::to_string(get(j, getCol() - 1));
+            spaces = (longestCharacter - printValue.size()) /2;
+            for(int k = 0; k < spaces; k++) std::cout << " ";
+            std::cout << printValue;
+            for(int k = 0; k < spaces; k++) std::cout << " ";
             std::cout << "|" << std::endl;
+
+            if (mode == 2 || mode == 3){
+                for (int i = 0; i < totalLineLength; i++) std::cout << "-";
+                std::cout << std::endl;
+            }
         }
 
-        for (int i = 0; i < totalLineLength; i++) std::cout << "-";
-        std::cout << std::endl;
+        // The last line
+        if (mode == 1){
+            for (int i = 0; i < totalLineLength; i++) std::cout << "-";
+            std::cout << std::endl;
+        }
     }
     inline void randomize(){
         for(int j = 0; j < row; j++){
@@ -260,7 +336,7 @@ public:
             }
         }
     }
-    inline void randomize(int lower, int upper, float divide){
+    inline void randomize(int lower, int upper, float divide, int precision = 2){
         for(int j = 0; j < row; j++){
             for(int i = 0; i < col; i++){
                 set(j, i, (rand() % (upper - lower + 1) + lower) / divide);
@@ -274,6 +350,51 @@ public:
             }
         }
     }
+    static matrix copy(matrix m) {
+        matrix m2 (m.getRow(), m.getCol());
+        for(int j = 0; j < m.getRow(); j++){
+            for(int i = 0; i < m.getCol(); i++){
+                m2.set(j, i, m.get(j, i));
+            }
+        }
+        return m2;
+    }
+    static matrix switchRows(matrix m, int row1, int row2){
+        if (row1 > row2) {
+            int variableTemp = row1;
+            row1 = row2;
+            row2 = variableTemp;
+        } else if (row1 == row2) return m;
+
+        matrix m2(m.getRow(), m.getCol());
+        std::vector<float> temp(m.getCol());
+        for(int i = 0; i < m.getCol(); i++) temp[i] = m.get(row1, i);
+        
+        for (int j = 0; j < m.getRow(); j++){
+            if(j == row1){
+                for(int i = 0; i < m.getCol(); i++) m2.set(j, i, m.get(row2, i));
+            } else if (j == row2){
+                for(int i = 0; i < m.getCol(); i++) m2.set(j, i, temp[i]);
+            } else {
+                for(int i = 0; i < m.getCol(); i++) m2.set(j, i, m.get(j, i));
+            }
+        }
+
+        return m2;
+    }
+    void switchRows(int row1, int row2){
+        if (row1 > row2) {
+            int variableTemp = row1;
+            row1 = row2;
+            row2 = variableTemp;
+        } else if (row1 == row2) return;
+
+        std::vector<float> temp(getCol());
+        for(int i = 0; i < getCol(); i++) temp[i] = get(row1, i);
+
+        for(int i = 0; i < getCol(); i++) set(row1, i, get(row2, i));
+        for(int i = 0; i < getCol(); i++) set(row2, i, temp[i]);
+    }   
 
     inline int getRow() { return row; }
     inline int getCol() { return col; }
@@ -294,7 +415,6 @@ private:
             longestCharacterHalf = longestCharacter / 2;
         }
     }
-    
 
     std::vector<std::vector<float>> data;
     int row, col;

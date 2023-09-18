@@ -209,8 +209,10 @@ public:
 
             // Step 4 (Add suitable multiplies of the first row to the ones belowto obtain zeros under the leading one)
             for (int j = leadingOneRow + 1; j < intermediate.getRow(); j++) {
-                float mult = -intermediate.get(j, leadingOneCol);
-                intermediate.set(j, leadingOneCol, intermediate.get(j, leadingOneCol) + intermediate.get(leadingOneRow, leadingOneCol) * mult);
+                if(intermediate.get(j, leadingOneCol) != 0.0f){
+                    float mult = -intermediate.get(j, leadingOneCol);
+                    for (int i = 0; i < intermediate.getCol(); i++) intermediate.set(j, i, intermediate.get(j, i) + intermediate.get(leadingOneRow, i) * mult);
+                }
             }
         }
 
@@ -244,6 +246,7 @@ public:
         if (identity(I)) return B;
         else return matrix(0, 0);
     }
+    static float determinant2x2(matrix m) { return (m.get(0, 0) * m.get(1, 1)) - (m.get(0, 1) * m.get(1, 0)); }
     static matrix inverse2x2(matrix m) {
         float determinant = (m.get(0, 0) * m.get(1, 1)) - (m.get(0, 1) * m.get(1, 0));
         if (m.getCol() != 2 || m.getRow() != 2)
@@ -267,7 +270,79 @@ public:
         return res;
     }
     static float determinant(matrix m){
-        return 0;
+        // For the case with a zero row.
+        for (int j = 0; j < m.getRow(); j++) {
+            bool notZeroFound = false;
+            for(int i = 0; i < m.getCol(); i++) {
+                if (m.get(j, i) != 0.0f) {
+                    notZeroFound = true;
+                    break;
+                }
+            }
+            if (!notZeroFound) return 0.0f;
+        }
+
+        float total = 1.0f;
+        matrix intermediate = copy(m);
+
+        //Now we do Gauss Jordan Elimination
+        //Step 1
+        int leadingOneCol = -1;
+        int leadingOneRow = -1;
+        bool done = false;
+        std::cout << "Diagonal: " << std::endl;
+        while (done == false){
+            // Step 1 (Find first column with non-zero value)
+            float a;
+            bool leadingOneFound = false;
+            for (int i = leadingOneCol + 1; i < intermediate.getCol(); i++){
+                for(int j = leadingOneRow + 1; j < intermediate.getRow(); j++){
+                    
+                    // Check if the row below the last leading one has a value  
+                    if (intermediate.get(j, i) != 0.0f) {
+                        a = intermediate.get(j, i);
+
+                        if (j > (leadingOneRow + 1))
+                        leadingOneCol = i;
+                        leadingOneRow++;
+                        leadingOneFound = true;
+                        break;
+
+                    // Step 2 (Switch this row with the first row)
+                    } else if (intermediate.get(j, i) != 0.0f) {
+                        a = intermediate.get(j, i);
+                        
+                        intermediate.switchRows(leadingOneRow + 1, j);
+                        std::cout << "SWITCH: " << (leadingOneRow + 1) << " " << j << std::endl; 
+                        leadingOneCol = i;
+                        leadingOneRow++;
+                        leadingOneFound = true;
+                        break;
+                    }
+                }
+                if (leadingOneFound) break;
+            }
+            if (!leadingOneFound) {
+                done = true;
+                break;
+            } else {
+                total *= a;
+                std::cout << "- " << a << std::endl;
+            }
+
+            // Step 3 (Divide the row by a)
+            for(int i = leadingOneCol; i < intermediate.getCol(); i++) intermediate.set(leadingOneRow, i, intermediate.get(leadingOneRow, i) / a);
+
+            // Step 4 (Add suitable multiplies of the first row to the ones belowto obtain zeros under the leading one)
+            for (int j = leadingOneRow + 1; j < intermediate.getRow(); j++) {
+                if(intermediate.get(j, leadingOneCol) != 0.0f){
+                    float mult = -intermediate.get(j, leadingOneCol);
+                    for (int i = leadingOneCol; i < intermediate.getCol(); i++) intermediate.set(j, i, intermediate.get(j, i) + intermediate.get(leadingOneRow, i) * mult);
+                }
+            }
+        }
+
+        return total;
     }
 
     // Normal operations for the class as a whole (not necessarily math functions)

@@ -4,14 +4,18 @@
 #include <cstdlib> // for rand and abs function
 #include <iostream>
 
-//template <typename T>
-float vector1DMultiply(std::vector<float> v1, std::vector<float> v2) {
-    float y = v1[0] * v2[0] + v1[1] * v2[1];
-    
-    for(int i = 2; i < v1.size(); i++) y += v1[i] * v2[i];
-
-    return y;
+/* Examples
+{
+    { 1, 2, 3 },
+    { 4, 5, 6 }
 }
+{
+    { 1 },
+    { 2 },
+    { 3 }    
+}
+*/
+
 
 class matrix {
 public:
@@ -23,33 +27,17 @@ public:
       col(m[0].size()) {
         updateLongestCharacter();
     }
-
     matrix (int rows, int columns) 
     : row(rows),
       col(columns) {
         data = std::vector<std::vector<float>>(rows);
         for (int i = 0; i < rows; i++) data[i] = std::vector<float>(columns);
-        updateLongestCharacter();
     }
     matrix (int rows) 
     : row(rows),
       col(1) {
         for(int i = 0; i < rows; i++) data.push_back( { 0 } );
-        updateLongestCharacter();
     }
-
-
-    /*
-    {
-        { 1, 2, 3 },
-        { 4, 5, 6 }
-    }
-    {
-        { 1 },
-        { 2 },
-        { 3 }    
-    }
-    */
 
     // Math operations
     static matrix multiply (matrix m1, matrix m2){
@@ -176,26 +164,21 @@ public:
                 for(int j = leadingOneRow + 1; j < intermediate.getRow(); j++){
                     
                     // Check if the row below the last leading one has a value  
-                    if (intermediate.get(j, i) != 0.0f && j == (leadingOneRow + 1)) {
-                        a = intermediate.get(j, i);
+                    if (intermediate.get(j, i) != 0.0f) {
 
-                        leadingOneCol = i;
-                        leadingOneRow = j;
+                        // Step 2 (Switch this row with the first row)
+                        if (j - leadingOneRow > 1) {
+                        
+                            intermediate.switchRows(leadingOneRow + 1, j);
+                            std::cout << "SWITCH: " << (leadingOneRow + 1) << " " << j << std::endl;
+                        } 
                         leadingOneFound = true;
-                        break;
-
-                    // Step 2 (Switch this row with the first row)
-                    } else if (intermediate.get(j, i) != 0.0f) {
-                        a = intermediate.get(j, i);
-                        
-                        intermediate.switchRows(leadingOneRow + 1, j);
-                        
-                        
                         leadingOneCol = i;
                         leadingOneRow++;
-                        leadingOneFound = true;
+                        a = intermediate.get(leadingOneRow, leadingOneCol);
                         break;
                     }
+
                 }
                 if (leadingOneFound) break;
             }
@@ -290,7 +273,6 @@ public:
         int leadingOneCol = -1;
         int leadingOneRow = -1;
         bool done = false;
-        std::cout << "Diagonal: " << std::endl;
         while (done == false){
             // Step 1 (Find first column with non-zero value)
             float a;
@@ -300,25 +282,20 @@ public:
                     
                     // Check if the row below the last leading one has a value  
                     if (intermediate.get(j, i) != 0.0f) {
-                        a = intermediate.get(j, i);
 
-                        if (j > (leadingOneRow + 1))
-                        leadingOneCol = i;
-                        leadingOneRow++;
-                        leadingOneFound = true;
-                        break;
-
-                    // Step 2 (Switch this row with the first row)
-                    } else if (intermediate.get(j, i) != 0.0f) {
-                        a = intermediate.get(j, i);
+                        // Step 2 (Switch this row with the first row)
+                        if (j - leadingOneRow > 1) {
                         
-                        intermediate.switchRows(leadingOneRow + 1, j);
-                        std::cout << "SWITCH: " << (leadingOneRow + 1) << " " << j << std::endl; 
+                            intermediate.switchRows(leadingOneRow + 1, j);
+                            std::cout << "SWITCH: " << (leadingOneRow + 1) << " " << j << std::endl;
+                        } 
+                        leadingOneFound = true;
                         leadingOneCol = i;
                         leadingOneRow++;
-                        leadingOneFound = true;
+                        a = intermediate.get(leadingOneRow, leadingOneCol);
                         break;
                     }
+
                 }
                 if (leadingOneFound) break;
             }
@@ -333,13 +310,16 @@ public:
             // Step 3 (Divide the row by a)
             for(int i = leadingOneCol; i < intermediate.getCol(); i++) intermediate.set(leadingOneRow, i, intermediate.get(leadingOneRow, i) / a);
 
-            // Step 4 (Add suitable multiplies of the first row to the ones belowto obtain zeros under the leading one)
+            // Step 4 (Add suitable multiplies of the first row to the ones below to obtain zeros under the leading one)
             for (int j = leadingOneRow + 1; j < intermediate.getRow(); j++) {
                 if(intermediate.get(j, leadingOneCol) != 0.0f){
                     float mult = -intermediate.get(j, leadingOneCol);
-                    for (int i = leadingOneCol; i < intermediate.getCol(); i++) intermediate.set(j, i, intermediate.get(j, i) + intermediate.get(leadingOneRow, i) * mult);
+                    for (int i = 0; i < intermediate.getCol(); i++) {
+                        intermediate.set(j, i, intermediate.get(j, i) + intermediate.get(leadingOneRow, i) * mult);
+                    }
                 }
             }
+            intermediate.print();
         }
 
         return total;
@@ -355,40 +335,50 @@ public:
             }
         }
     }
+    // Modes can be 1, 2, 3
     inline void print(int mode = 1){
-        // Update the stroed longest character length
-        if(changed) updateLongestCharacter();
-        std::cout << longestCharacter << std::endl;
+        if (mode < 1 || mode > 3) {
+            std::cout << "Mode is not between 1 and 3" << std::endl;
+            return;
+        }
 
+        //std::cout << "Longest: " << longestCharacter << std::endl;
+        
         // First line
         int totalLineLength;
-        if (mode == 1 || mode == 3) totalLineLength = (col - 1) * (longestCharacter + 1) + longestCharacter + 2;
-        else totalLineLength = (col - 1) * longestCharacter + longestCharacter + 2;
+        if (mode == 1 || mode == 3) totalLineLength = col * (longestCharacter + 3) + 1;
+        else totalLineLength = col * (longestCharacter + 2) + 2;
 
         for (int i = 0; i < totalLineLength; i++) std::cout << "-";
         std::cout << " (" << row << ", " << col << ")" << std::endl;
-
+        
         // All the lines in the middle
         for(int j = 0; j < row; j++) {
             std::cout << "|";
-            std::string printValue = std::to_string(get(j, 0));
-            int spaces = (longestCharacter - printValue.size()) / 2;
-            for(int i = 0; i < spaces; i++) std::cout << " ";
-
             
+            // First to second last value in each row.
             for (int i = 0; i < col - 1; i++) {
                 std::string printValue = std::to_string(get(j, i));
-                spaces = (longestCharacter - printValue.size()) /2;
+
+                int dif = longestCharacter - printValue.size();
+                int extra = dif % 2;
+                int spaces = dif / 2;
+
+                for(int k = 0; k < (spaces + extra); k++) std::cout << " ";
+                std::cout << " " << printValue << " ";
                 for(int k = 0; k < spaces; k++) std::cout << " ";
-                std::cout << printValue;
-                for(int k = 0; k < spaces; k++) std::cout << " ";
+
                 if (mode == 1 || mode == 3) std::cout << "|";
             }
 
-            printValue = std::to_string(get(j, getCol() - 1));
-            spaces = (longestCharacter - printValue.size()) /2;
-            for(int k = 0; k < spaces; k++) std::cout << " ";
-            std::cout << printValue;
+            // last value in each row.
+            std::string printValue = std::to_string(get(j, getCol() - 1));
+            int dif = longestCharacter - printValue.size();
+            int extra = dif % 2;
+            int spaces = dif / 2;
+
+            for(int k = 0; k < (spaces + extra); k++) std::cout << " ";
+            std::cout << " " << printValue << " ";
             for(int k = 0; k < spaces; k++) std::cout << " ";
             std::cout << "|" << std::endl;
 
@@ -474,26 +464,26 @@ public:
     inline int getRow() { return row; }
     inline int getCol() { return col; }
     inline float get(int row, int col) { return data[row][col]; }
-    inline void set(int row, int col, float value) { data[row][col] = value; }
+    inline void set(int row, int col, float value) { 
+        data[row][col] = value; 
+        int width = std::to_string(value).size();
+        if (width == longestCharacter) updateLongestCharacter(); 
+        else if (width > longestCharacter) longestCharacter = width; 
+    }
 private:
     void updateLongestCharacter(){
-        int highestWidth = 0;
-        for(int j = 0; j < row; j++) { 
-            for(int i = 0; i < col; i++){
+        longestCharacter = 0;
+        for (int j = 0; j < row; j++) {
+            for (int i = 0; i < col; i++) {
                 std::string cha = std::to_string(get(j, i));
                 int width = cha.size();
-                if (width > highestWidth) highestWidth = width;
+                if (width > longestCharacter) longestCharacter = width;
             }
-        }
-        if ((highestWidth + 2) != longestCharacter) {
-            longestCharacter = (highestWidth + 2);
-            longestCharacterHalf = longestCharacter / 2;
         }
     }
 
     std::vector<std::vector<float>> data;
     int row, col;
 
-    bool changed;
-    int longestCharacter, longestCharacterHalf;
+    int longestCharacter;
 };

@@ -16,7 +16,6 @@
 }
 */
 
-
 class matrix {
 public:
 
@@ -25,7 +24,6 @@ public:
     : data(m),
       row(m.size()),
       col(m[0].size()) {
-        updateLongestCharacter();
     }
     matrix (int rows, int columns) 
     : row(rows),
@@ -149,7 +147,7 @@ public:
         for (int i = 0; i < m.getRow(); i++) total += m.get(i, i);
         return total;
     }
-    static matrix GaussJordanElimination(matrix m) {
+    static matrix GaussJordanElimination(matrix m, bool verbose = false) {
         matrix intermediate = copy(m);
 
         //Step 1
@@ -189,6 +187,7 @@ public:
 
             // Step 3 (Divide the row by a)
             for(int i = leadingOneCol; i < intermediate.getCol(); i++) intermediate.set(leadingOneRow, i, intermediate.get(leadingOneRow, i) / a);
+            //intermediate.print();
 
             // Step 4 (Add suitable multiplies of the first row to the ones belowto obtain zeros under the leading one)
             for (int j = leadingOneRow + 1; j < intermediate.getRow(); j++) {
@@ -197,12 +196,37 @@ public:
                     for (int i = 0; i < intermediate.getCol(); i++) intermediate.set(j, i, intermediate.get(j, i) + intermediate.get(leadingOneRow, i) * mult);
                 }
             }
+            if (verbose) {
+                std::cout << "Leading one found at position: (" << leadingOneRow << ", " << leadingOneCol << ") with the value: " << a << std::endl;
+                intermediate.print();
+            }
         }
 
         return intermediate;
     }
-    static matrix GaussJordanEliminationReduced(matrix m) {
-        matrix intermediate = GaussJordanElimination(m);
+    static matrix GaussJordanEliminationReduced(matrix m, bool verbose = false) {
+        matrix intermediate = GaussJordanElimination(m, verbose);
+
+        // First find the leading one from below.
+        for(int j = intermediate.getRow() - 1; j > 0; j--) {
+            for (int i = 0; i < intermediate.getCol(); i++) {
+
+                // Leading one found
+                if (intermediate.get(j, i) == 1.0f){
+
+                    // check values above
+                    for(int k = j - 1; k > -1; k--) {
+
+                        // If something other than 0.0 found.
+                        if (intermediate.get(k, i) != 0.0f){
+                            float mult = -intermediate.get(k, i);
+                            for (int x = 0; x < intermediate.getCol(); x++) intermediate.set(k, x, intermediate.get(k, x) + intermediate.get(j, x) * mult);
+                        }
+                    }
+                }
+            }
+        }
+
         return intermediate;
     }
     static matrix inverse(matrix m){
@@ -215,17 +239,18 @@ public:
         // Copy A over and create the identity matrix. (Left side A and right side I)
         matrix intermediate = matrix(m.getRow(), m.getCol() * 2);
         for(int i = 0; i < m.getRow(); i++) intermediate.set(i, m.getCol() + i, 1.0f);
-        matrix::copy(m, intermediate);
+        matrix::copy(m, &intermediate); // side effect does not seem to work here for some reason
         
         // Now reduce to row echelon form
-        intermediate = GaussJordanElimination(intermediate);
+        intermediate = GaussJordanEliminationReduced(intermediate);
+        intermediate.print();
 
         // Now copy intermediate over in I and B, then check if I is an identity matrix and if so, return B
         matrix I(m.getRow(), m.getCol());
         matrix B(m.getRow(), m.getCol());
-        matrix::copy(intermediate, I);
-        matrix::copy(intermediate, B, m.getCol());
-
+        matrix::copy(intermediate, &I);
+        matrix::copy(intermediate, &B, m.getCol(), 0);
+        
         if (identity(I)) return B;
         else return matrix(0, 0);
     }
@@ -341,8 +366,15 @@ public:
             std::cout << "Mode is not between 1 and 3" << std::endl;
             return;
         }
+        int longestCharacter = 0;
+        for (int j = 0; j < row; j++) {
+            for (int i = 0; i < col; i++) {
+                std::string cha = std::to_string(get(j, i));
+                int width = cha.size();
+                if (width > longestCharacter) longestCharacter = width;
+            }
+        }
 
-        //std::cout << "Longest: " << longestCharacter << std::endl;
         
         // First line
         int totalLineLength;
@@ -393,6 +425,7 @@ public:
             for (int i = 0; i < totalLineLength; i++) std::cout << "-";
             std::cout << std::endl;
         }
+        
     }
     inline void randomize(){
         for(int j = 0; j < row; j++){
@@ -408,10 +441,10 @@ public:
             }
         }
     }
-    static void copy(matrix m1, matrix m2, int offsetX = 0, int offsetY = 0){
-        for(int j = offsetY; j < m1.getRow(); j++){
-            for(int i = offsetX; i < m1.getCol(); i++){
-                m2.set(j, i, m1.get(j, i));
+    static void copy(matrix m1, matrix* m2, int offsetX = 0, int offsetY = 0){
+        for(int j = 0; j < m1.getRow(); j++){
+            for(int i = 0; i < m1.getCol(); i++){
+                m2->set(j, i, m1.get(j + offsetY, i + offsetX));
             }
         }
     }
@@ -464,26 +497,9 @@ public:
     inline int getRow() { return row; }
     inline int getCol() { return col; }
     inline float get(int row, int col) { return data[row][col]; }
-    inline void set(int row, int col, float value) { 
-        data[row][col] = value; 
-        int width = std::to_string(value).size();
-        if (width == longestCharacter) updateLongestCharacter(); 
-        else if (width > longestCharacter) longestCharacter = width; 
-    }
+    inline void set(int row, int col, float value) { data[row][col] = value; }
 private:
-    void updateLongestCharacter(){
-        longestCharacter = 0;
-        for (int j = 0; j < row; j++) {
-            for (int i = 0; i < col; i++) {
-                std::string cha = std::to_string(get(j, i));
-                int width = cha.size();
-                if (width > longestCharacter) longestCharacter = width;
-            }
-        }
-    }
 
     std::vector<std::vector<float>> data;
     int row, col;
-
-    int longestCharacter;
 };

@@ -215,14 +215,16 @@ public:
                 if (intermediate.get(j, i) == 1.0f){
 
                     // check values above
-                    for(int k = j - 1; k > -1; k--) {
+                    for(int k = (j - 1); k > -1; k--) {
 
                         // If something other than 0.0 found.
                         if (intermediate.get(k, i) != 0.0f){
                             float mult = -intermediate.get(k, i);
+                            //std::cout << "mult: " << mult << " x: " << i << " y: " << k << std::endl;
                             for (int x = 0; x < intermediate.getCol(); x++) intermediate.set(k, x, intermediate.get(k, x) + intermediate.get(j, x) * mult);
                         }
                     }
+                    break; // Found the leading one, find the next one.
                 }
             }
         }

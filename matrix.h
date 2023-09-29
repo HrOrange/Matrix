@@ -132,6 +132,14 @@ public:
         }
         return res;
     }
+    static bool independent(matrix m) {
+        matrix intermediate = GaussJordanEliminationReduced(m);
+        return identity(intermediate)
+        /*
+        if the reduced row echelon form is the identity matrix for the given matrix size, then the only solution is the trivial solution, 
+        which is to multiply each vector by zero. That means no combination of the vectors can be made to get another vector in the set.
+        */
+    }
     static inline matrix createIdentity(int size){
         matrix returnMatrix(size, size);
         for(int i = 0; i < size; i++) returnMatrix.set(i, i, 1.0f);
@@ -168,7 +176,9 @@ public:
                         if (j - leadingOneRow > 1) {
                         
                             intermediate.switchRows(leadingOneRow + 1, j);
-                            std::cout << "SWITCH: " << (leadingOneRow + 1) << " " << j << std::endl;
+                            if(verbose){
+                                std::cout << "SWITCH: " << (leadingOneRow + 1) << " " << j << std::endl;
+                            }
                         } 
                         leadingOneFound = true;
                         leadingOneCol = i;

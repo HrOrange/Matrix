@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
-#include <cstdlib> // for rand and abs function
 #include <iostream>
+#include "frac.h"
 
 /* Examples
 {
@@ -21,15 +21,15 @@ public:
 
     // Constructors and destructors
     matrix (std::vector<std::vector<float>> m)
-    : data(m),
+    : data(frac::floatTofrac(m)),
       row(m.size()),
       col(m[0].size()) {
     }
     matrix (int rows, int columns) 
     : row(rows),
       col(columns) {
-        data = std::vector<std::vector<float>>(rows);
-        for (int i = 0; i < rows; i++) data[i] = std::vector<float>(columns);
+        data = std::vector<std::vector<frac>>(rows);
+        for (int i = 0; i < rows; i++) data[i] = std::vector<frac>(columns);
     }
     matrix (int rows) 
     : row(rows),
@@ -47,7 +47,7 @@ public:
         
         for (int j = 0; j < newMatrix.getRow(); j++) {
             for (int i = 0; i < newMatrix.getCol(); i++) {
-                float total = 0;
+                frac total = 0;
                 for(int k = 0; k < m1.getCol(); k++) total += (m1.get(j, k) * m2.get(k, i));
                 newMatrix.set(j, i, total);
             }
@@ -100,7 +100,7 @@ public:
         matrix res(m.getRow(), m.getCol());
         for(int j = 0; j < m.getRow(); j++){
             for(int i = 0; i < m.getCol(); i++){
-                res.set(j, i, std::abs(m.get(j, i)));
+                res.set(j, i, frac::abs(m.get(j, i)));
             }
         }
         return res;
@@ -122,8 +122,8 @@ public:
         bool res = true;
         for (int j = 0; j < m.getRow(); j++) {
             for(int i = 0; i < m.getCol(); i++){
-                float value = m.get(j, i);
-                if ((i != j && value != 0.0f) || (i == j && value != 1.0f)) {
+                frac value =m.get(j, i);
+                if ((i != j && value != 0) || (i == j && value != 1.0f)) {
                     res = false;
                     break;
                 }
@@ -134,7 +134,9 @@ public:
     }
     static bool independent(matrix m) {
         matrix intermediate = GaussJordanEliminationReduced(m);
-        return identity(intermediate)
+        //return identity(intermediate)
+
+        return true;
         /*
         if the reduced row echelon form is the identity matrix for the given matrix size, then the only solution is the trivial solution, 
         which is to multiply each vector by zero. That means no combination of the vectors can be made to get another vector in the set.
@@ -145,13 +147,13 @@ public:
         for(int i = 0; i < size; i++) returnMatrix.set(i, i, 1.0f);
         return returnMatrix;
     }
-    static inline float trace(matrix m) { 
+    static inline frac trace(matrix m) { 
         if (m.getRow() != m.getCol()) {
             std::cout << "Sizes dont match!!! The columns and rows should be the same, I think." << std::endl;
             return 0;
         }
 
-        float total;
+        frac total;
         for (int i = 0; i < m.getRow(); i++) total += m.get(i, i);
         return total;
     }
@@ -164,13 +166,13 @@ public:
         bool done = false;
         while (done == false){
             // Step 1 (Find first column with non-zero value)
-            float a;
+            frac a;
             bool leadingOneFound = false;
             for (int i = leadingOneCol + 1; i < intermediate.getCol(); i++){
                 for(int j = leadingOneRow + 1; j < intermediate.getRow(); j++){
                     
                     // Check if the row below the last leading one has a value  
-                    if (intermediate.get(j, i) != 0.0f) {
+                    if (intermediate.get(j, i) != 0) {
 
                         // Step 2 (Switch this row with the first row)
                         if (j - leadingOneRow > 1) {
@@ -201,13 +203,13 @@ public:
 
             // Step 4 (Add suitable multiplies of the first row to the ones belowto obtain zeros under the leading one)
             for (int j = leadingOneRow + 1; j < intermediate.getRow(); j++) {
-                if(intermediate.get(j, leadingOneCol) != 0.0f){
-                    float mult = -intermediate.get(j, leadingOneCol);
+                if(intermediate.get(j, leadingOneCol) != 0){
+                    frac mult = -intermediate.get(j, leadingOneCol);
                     for (int i = 0; i < intermediate.getCol(); i++) intermediate.set(j, i, intermediate.get(j, i) + intermediate.get(leadingOneRow, i) * mult);
                 }
             }
             if (verbose) {
-                std::cout << "Leading one found at position: (" << leadingOneRow << ", " << leadingOneCol << ") with the value: " << a << std::endl;
+                std::cout << "Leading one found at position: (" << leadingOneRow << ", " << leadingOneCol << ") with the value: " << frac::toString(a) << std::endl;
                 intermediate.print();
             }
         }
@@ -228,8 +230,8 @@ public:
                     for(int k = (j - 1); k > -1; k--) {
 
                         // If something other than 0.0 found.
-                        if (intermediate.get(k, i) != 0.0f){
-                            float mult = -intermediate.get(k, i);
+                        if (intermediate.get(k, i) != 0){
+                            frac mult = -intermediate.get(k, i);
                             //std::cout << "mult: " << mult << " x: " << i << " y: " << k << std::endl;
                             for (int x = 0; x < intermediate.getCol(); x++) intermediate.set(k, x, intermediate.get(k, x) + intermediate.get(j, x) * mult);
                         }
@@ -266,35 +268,12 @@ public:
         if (identity(I)) return B;
         else return matrix(0, 0);
     }
-    static float determinant2x2(matrix m) { return (m.get(0, 0) * m.get(1, 1)) - (m.get(0, 1) * m.get(1, 0)); }
-    static matrix inverse2x2(matrix m) {
-        float determinant = (m.get(0, 0) * m.get(1, 1)) - (m.get(0, 1) * m.get(1, 0));
-        if (m.getCol() != 2 || m.getRow() != 2)
-        {
-            std::cout << "Matrix is not a 2x2." << std::endl;
-            return matrix(0, 0);
-        }
-        else if (determinant == 0){
-            std::cout << "Determinant is zero." << std::endl;
-            return matrix(0, 0);
-        }
-
-        float inverseDeterminant = 1.0f / determinant;
-        matrix res(2, 2);
-        for(int j = 0; j < 2; j++) {
-            for (int i = 0; i < 2; i++) {
-                if (i != j) res.set(j, i, inverseDeterminant * -m.get(j, i));
-                else res.set(j, i, inverseDeterminant * m.get(1 - j, 1 - i));
-            }
-        }
-        return res;
-    }
-    static float determinant(matrix m){
+    static frac determinant(matrix m){
         // For the case with a zero row.
         for (int j = 0; j < m.getRow(); j++) {
             bool notZeroFound = false;
             for(int i = 0; i < m.getCol(); i++) {
-                if (m.get(j, i) != 0.0f) {
+                if (m.get(j, i) != 0) {
                     notZeroFound = true;
                     break;
                 }
@@ -302,7 +281,7 @@ public:
             if (!notZeroFound) return 0.0f;
         }
 
-        float total = 1.0f;
+        frac total(1);
         matrix intermediate = copy(m);
 
         //Now we do Gauss Jordan Elimination
@@ -312,13 +291,13 @@ public:
         bool done = false;
         while (done == false){
             // Step 1 (Find first column with non-zero value)
-            float a;
+            frac a;
             bool leadingOneFound = false;
             for (int i = leadingOneCol + 1; i < intermediate.getCol(); i++){
                 for(int j = leadingOneRow + 1; j < intermediate.getRow(); j++){
                     
                     // Check if the row below the last leading one has a value  
-                    if (intermediate.get(j, i) != 0.0f) {
+                    if (intermediate.get(j, i) != 0) {
 
                         // Step 2 (Switch this row with the first row)
                         if (j - leadingOneRow > 1) {
@@ -341,7 +320,7 @@ public:
                 break;
             } else {
                 total *= a;
-                std::cout << "- " << a << std::endl;
+                std::cout << "- " << frac::toString(a) << std::endl;
             }
 
             // Step 3 (Divide the row by a)
@@ -349,8 +328,8 @@ public:
 
             // Step 4 (Add suitable multiplies of the first row to the ones below to obtain zeros under the leading one)
             for (int j = leadingOneRow + 1; j < intermediate.getRow(); j++) {
-                if(intermediate.get(j, leadingOneCol) != 0.0f){
-                    float mult = -intermediate.get(j, leadingOneCol);
+                if(intermediate.get(j, leadingOneCol) != 0){
+                    frac mult = -intermediate.get(j, leadingOneCol);
                     for (int i = 0; i < intermediate.getCol(); i++) {
                         intermediate.set(j, i, intermediate.get(j, i) + intermediate.get(leadingOneRow, i) * mult);
                     }
@@ -363,9 +342,27 @@ public:
     }
 
     // Normal operations for the class as a whole (not necessarily math functions)
+    // These two are created because of the frac library
+    void reduce() {
+        for (int j = 0; j < getRow(); j++) {
+            for (int i = 0; i < getCol(); i++) {
+                data[j][i].reduce();
+            }
+        }
+    }
+    static matrix reduce(matrix m) {
+        matrix newM(m.getRow(), m.getCol());
+        for (int j = 0; j < m.getRow(); j++) {
+            for (int i = 0; i < m.getCol(); i++) {
+                newM.set(j, i, frac::reduce(m.get(j, i)));
+            }
+        }
+        return newM;
+    }
+
     std::vector<int> getSize() { return { row, col }; }
     inline void printSize() { std::cout << "Rows: " << row << " Cols: " << col << std::endl; }
-    inline void reset(float value = 0){
+    inline void reset(frac value = frac(0)){
         for(int j = 0; j < row; j++) {
             for (int i = 0; i < col; i++) {
                 set(j, i, value);
@@ -381,7 +378,8 @@ public:
         int longestCharacter = 0;
         for (int j = 0; j < row; j++) {
             for (int i = 0; i < col; i++) {
-                std::string cha = std::to_string(get(j, i));
+                //std::string cha = std::to_string(get(j, i));
+                std::string cha = frac::toString(get(j, i));
                 int width = cha.size();
                 if (width > longestCharacter) longestCharacter = width;
             }
@@ -402,7 +400,8 @@ public:
             
             // First to second last value in each row.
             for (int i = 0; i < col - 1; i++) {
-                std::string printValue = std::to_string(get(j, i));
+                //std::string printValue = std::to_string(get(j, i));
+                std::string printValue = frac::toString(get(j, i));
 
                 int dif = longestCharacter - printValue.size();
                 int extra = dif % 2;
@@ -416,7 +415,8 @@ public:
             }
 
             // last value in each row.
-            std::string printValue = std::to_string(get(j, getCol() - 1));
+            //std::string printValue = std::to_string(get(j, getCol() - 1));
+            std::string printValue = frac::toString(get(j, getCol() - 1));
             int dif = longestCharacter - printValue.size();
             int extra = dif % 2;
             int spaces = dif / 2;
@@ -449,7 +449,7 @@ public:
     inline void randomize(int lower, int upper, float divide, int precision = 2){
         for(int j = 0; j < row; j++){
             for(int i = 0; i < col; i++){
-                set(j, i, (rand() % (upper - lower + 1) + lower) / divide);
+                set(j, i, frac((rand() % (upper - lower + 1) + lower) / divide));
             }
         }
     }
@@ -477,7 +477,7 @@ public:
         } else if (row1 == row2) return m;
 
         matrix m2(m.getRow(), m.getCol());
-        std::vector<float> temp(m.getCol());
+        std::vector<frac> temp(m.getCol());
         for(int i = 0; i < m.getCol(); i++) temp[i] = m.get(row1, i);
         
         for (int j = 0; j < m.getRow(); j++){
@@ -499,7 +499,7 @@ public:
             row2 = variableTemp;
         } else if (row1 == row2) return;
 
-        std::vector<float> temp(getCol());
+        std::vector<frac> temp(getCol());
         for(int i = 0; i < getCol(); i++) temp[i] = get(row1, i);
 
         for(int i = 0; i < getCol(); i++) set(row1, i, get(row2, i));
@@ -508,10 +508,10 @@ public:
 
     inline int getRow() { return row; }
     inline int getCol() { return col; }
-    inline float get(int row, int col) { return data[row][col]; }
-    inline void set(int row, int col, float value) { data[row][col] = value; }
+    inline frac get(int row, int col) { return data[row][col]; }
+    inline void set(int row, int col, frac value) { data[row][col] = value; }
 private:
 
-    std::vector<std::vector<float>> data;
+    std::vector<std::vector<frac>> data;
     int row, col;
 };

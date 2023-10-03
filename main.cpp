@@ -3,12 +3,14 @@
 int main (){
     
     // Inversable
-    matrix t({{3.0f, 1.0f, 2.0f, 4.0f}, {8.0f, 3.45f, -1.0f, 2.0f}, {7.0f, 3.0f, 2.0f, 6.0f}, {-3.0f, -1.0f, 6.0f, 4.0f}});
-    t.print();
-    t.reduce();
-    t.print();
-    //matrix t2 = matrix::GaussJordanEliminationReduced(t, true);
-    //t2.print();
+    matrix t1({{2, -7}, {-1, 4}});
+    matrix t2({{1, -2}, {0, -1}});
+    matrix t3({{4, 7}, {1, 2}});
     
+    matrix t4 = matrix::multiply(t1, t2);
+    matrix t5 = matrix::multiply(t4, t3);
+
+    t5.print();
+
     return 0;
 }

@@ -2,6 +2,7 @@
 #include <vector>
 #include <cmath>
 
+// needs to add 1
 std::vector <int> primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59};
 
 /*
@@ -49,7 +50,7 @@ public:
             bool done;
             for(int i = primes.size() - 1; i > -1; i--) {
                 if (getValue() % primes[i] == 0 && getBase() % primes[i] == 0){
-                    setValue(getValue() / primes[i]);
+                    setValue(getValue() / (getBase() / primes[i]));
                     setBase(primes[i]);
                     done = true;
                     break;
@@ -61,7 +62,7 @@ public:
                 int highestPrime = primes[primes.size() - 1];
                 while ((getValue() % i != 0 || getBase() % i != 0) && i > highestPrime) i--;
                 
-                setValue(getValue() / i);
+                setValue(getValue() / (getBase() / i));
                 setBase(getBase() / i);
                 std::cout << "something found" << std::endl;
             }
@@ -73,8 +74,8 @@ public:
             int newValue, newBase;
             bool done;
             for(int i = primes.size() - 1; i > -1; i--) {
-                if (f.getValue() % primes[i] == 0 && f.getBase() % primes[i] == 0){
-                    newValue = f.getValue() / primes[i];
+                newValue = f.getValue() / (f.getBase() / primes[i]);
+                if (f.getValue() % primes[i] == 0 && newValue % primes[i] == 0){
                     newBase = primes[i];
                     done = true;
                     break;
@@ -84,9 +85,11 @@ public:
                 int i = f.getValue() - 1;
 
                 int highestPrime = primes[primes.size() - 1];
-                while ((f.getValue() % i != 0 || f.getBase() % i != 0) && i > highestPrime) i--;
+                while ((newValue % i != 0 || f.getBase() % i != 0) && i > highestPrime) {
+                    i--;
+                }
                 
-                newValue = f.getValue() / i;
+                newValue = f.getValue() / (f.getBase() / i);
                 newBase = f.getBase() / i;
             }
             return frac(newValue, newBase);
@@ -130,7 +133,7 @@ public:
     bool operator != (int value) { return ((getValue() / getBase()) != value); }
     
     frac operator * (frac f) { return frac(getValue() * f.getValue(), getBase() * f.getBase()); }
-    frac operator / (frac f) { return frac(getValue() / f.getValue(), getBase() / f.getBase()); }
+    frac operator / (frac f) { return reduce(frac(getValue() * f.getBase(), getBase() * f.getValue())); }
     frac operator + (frac f) {
         if (getBase() == f.getBase()) return frac(getValue() + f.getValue(), getBase());
         else return frac(getValue() * f.getBase() + f.getValue() * getBase(), getBase() * f.getBase());}

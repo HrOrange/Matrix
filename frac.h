@@ -2,8 +2,9 @@
 #include <vector>
 #include <cmath>
 
-// needs to add 1
-std::vector <int> primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59};
+// some small functions and constants
+std::vector <int> primes = {1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59};
+int min(int x, int y) { if (x <= y) return x; else return y; }
 
 /*
 2.5 = 5 / 2
@@ -46,10 +47,10 @@ public:
     }
 
     void reduce() {
-        if (getBase() > 1){
+        if (getBase() != 1) {
             bool done;
-            for(int i = primes.size() - 1; i > -1; i--) {
-                if (getValue() % primes[i] == 0 && getBase() % primes[i] == 0){
+            for(int i = 0; i < primes.size(); i++) {
+                if (getBase() % primes[i] == 0 && (getValue() % (getBase() / primes[i])) == 0){
                     setValue(getValue() / (getBase() / primes[i]));
                     setBase(primes[i]);
                     done = true;
@@ -57,14 +58,13 @@ public:
                 }
             }
             if (!done){
-                int i = getValue() - 1;
-
-                int highestPrime = primes[primes.size() - 1];
-                while ((getValue() % i != 0 || getBase() % i != 0) && i > highestPrime) i--;
+                int i = min(getValue(), getBase()) - 1;
+                while ((getBase() % i != 0 || getValue() % (getBase() / i) != 0) && i > 2) i--;
                 
-                setValue(getValue() / (getBase() / i));
-                setBase(getBase() / i);
-                std::cout << "something found" << std::endl;
+                if (i > 2){
+                    setValue(getValue() / (getBase() / i));
+                    setBase(getBase() / i);
+                }
             }
         }
     }
@@ -73,9 +73,9 @@ public:
         else {
             int newValue, newBase;
             bool done;
-            for(int i = primes.size() - 1; i > -1; i--) {
-                newValue = f.getValue() / (f.getBase() / primes[i]);
-                if (f.getValue() % primes[i] == 0 && newValue % primes[i] == 0){
+            for(int i = 0; i < primes.size(); i++) {
+                if (f.getBase() % primes[i] == 0 && (f.getValue() % (f.getBase() / primes[i])) == 0){
+                    newValue = f.getValue() / (f.getBase() / primes[i]);
                     newBase = primes[i];
                     done = true;
                     break;
@@ -84,13 +84,12 @@ public:
             if (!done){
                 int i = f.getValue() - 1;
 
-                int highestPrime = primes[primes.size() - 1];
-                while ((newValue % i != 0 || f.getBase() % i != 0) && i > highestPrime) {
-                    i--;
-                }
+                while ((f.getBase() % i != 0 || f.getValue() % (f.getBase() / i) != 0) && i > 2) i--;
                 
-                newValue = f.getValue() / (f.getBase() / i);
-                newBase = f.getBase() / i;
+                if (i > 2){
+                    newValue = f.getValue() / (f.getBase() / i);
+                    newBase = f.getBase() / i;
+                }
             }
             return frac(newValue, newBase);
         }
